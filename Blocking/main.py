@@ -14,7 +14,7 @@ players = [BlockingRandomPlayer for i in range(nb_players)]
 players_attribs = [{'name':'habib'},{'name':'rony'}]
 
 #%%
-runs = 1
+runs = 10
 Simulator.run(BlockingGame, players, nb_games=runs, record_dir=record_dir)
 #Simulator.run(BlockingGame, players, players_attribs=players_attribs, nb_games=runs)
 #Simulator.run(BlockingGame, players, nb_games=runs)
