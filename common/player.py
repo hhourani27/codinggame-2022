@@ -4,11 +4,12 @@ import builtins as __builtin__
 
 class Player:
     
-    def __init__(self,id,inq,outq):
+    def __init__(self,id,inq,outq,attrs=None):
         self.id = id
         self.inq = inq
         self.outq = outq
         
+        self.attrs = attrs
         
     def input(self):
         msg = self.inq.get()

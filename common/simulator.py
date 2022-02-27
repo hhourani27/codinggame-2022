@@ -4,14 +4,15 @@ from os.path import join
 import time
 
 class Simulator:
-    def run(Game,Players,nb_games=1,record_dir=None):
+    
+    def run(Game,Players,nb_games=1,players_attribs=None,record_dir=None):
         
         record_game = record_dir is not None
         
         game_records = []
         for n in range(1,nb_games+1):
             print('Start game {}'.format(n))
-            game = Simulator.run_game(Game, Players)            
+            game = Simulator.run_game(Game, Players,players_attribs)            
             print('End game {}'.format(n))
             
             if record_game:
@@ -24,14 +25,17 @@ class Simulator:
                         json.dump(game_records, out_file)
                     game_records = []
     
-    def run_game(Game, Players):
+    def run_game(Game, Players, players_attribs=None):
         
         nb_players = len(Players)
         
         pids = list(range(nb_players))
         in_q = [queue.Queue() for i in pids]
         out_q = [queue.Queue() for i in pids]
-        players = [Players[i](i,in_q[i],out_q[i]) for i in pids]
+        if players_attribs is None:
+            players = [Players[i](i,in_q[i],out_q[i]) for i in pids]
+        else:
+            players = [Players[i](i,in_q[i],out_q[i],players_attribs[i]) for i in pids]
         player_threads = [threading.Thread(target=p.run) for p in players]    
         
         # Start player threads
@@ -43,22 +47,16 @@ class Simulator:
         
         while True:
             player_id, msg_array = game.turn()
-            #print('Turn of Player {}'.format(player_id))
-            #print('\tIncoming message:')
             for msg in msg_array:
-                #print('\t\t{}'.format(msg))
                 in_q[player_id].put(msg)
                 
             msg = out_q[player_id].get()
             out_q[player_id].task_done()
-            #print('\tOutgoing message:')
-            #print('\t\t{}'.format(msg))
             
             active = game.move(msg)
             
             # Did the game end
             if active == False:
-                #print('Killing threads')
                 # Kill threads
                 for q in in_q:
                     q.put(None)
@@ -68,6 +66,5 @@ class Simulator:
         # Wait for player threads to terminate
         while any([t.is_alive() for t in player_threads]):
             pass
-        #print('Thread statuses: {}'.format([t.is_alive() for t in player_threads]))
         
         return game
