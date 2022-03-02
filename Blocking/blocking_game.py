@@ -134,22 +134,30 @@ class MoveDatabase :
     
     # Remove from the DB a set of letters
     def remove_shape_letters(self, letters_to_remove):
+        letter_to_remove_enc = {ord(l)-65 for l in letters_to_remove}
+        
         # Remove all moves from move_idx that have those shape letters
         moves_to_delete = set()
+        cells_to_delete = set()
         for move in list(self.move_idx.keys()):
-            if move[2][0] in letters_to_remove:
+            if (move >> 6 & 0b11111) in letter_to_remove_enc:
                 moves_to_delete.add(move)
+                cells_to_delete.update(self.move_idx[move])
                 del self.move_idx[move]
         
         # Remove all moves from the cell_idx that have those shape letters
-        for cell, moves in self.cell_idx.items():
-            self.cell_idx[cell].difference_update(moves_to_delete)
+        for cell in cells_to_delete:
+            for move in moves_to_delete:
+                if move in self.cell_idx[cell] :
+                    self.cell_idx[cell].remove(move)
             
     def remove_shape_letter(self, letter_to_remove):
         self.remove_shape_letters(set([letter_to_remove]))
     
     # Remove from the db a cell that is no longer usable
     def remove_cell(self, cell):
+        cell = MoveDatabase.encode_cell(cell)
+        
         moves_to_delete = self.cell_idx.pop(cell,None)
         if moves_to_delete is not None:
             for m in moves_to_delete:
@@ -167,25 +175,77 @@ class MoveDatabase :
         if len(self.move_idx) == 0:
             return legal_moves
         
-        for r,c in cells:
-            legal_moves = legal_moves.union({move for move in self.move_idx.keys() if move[0] == r and move[1] == c})
+        for cell in cells:
+            cell_enc = MoveDatabase.encode_cell(cell)
+            legal_moves.update(self.cell_idx[cell_enc])
         
+        legal_moves = [MoveDatabase.decode_move(lm) for lm in legal_moves]
         return legal_moves
     
     def is_valid_move(self, r, c, shape, n):
         move = (r,c,'{}{}'.format(shape,n))
-        return move in self.move_idx
+        move_enc = MoveDatabase.encode_move(move)
+        return move_enc in self.move_idx
     
     # return the cell that are filled at a certain position
     def get_filled_cells(self, move):
-        return self.move_idx[move]
+        filled_cells = self.move_idx[move]
+        return [MoveDatabase.decode_cell(c) for c in filled_cells]
+    
+    # Encode move tuple (x,y,A001) into a number
+    @staticmethod
+    def encode_move(move):
+        x,y,m = move
+        s = ord(m[0]) - 65
+        f = int(m[1])
+        r = int(m[2])
+        n = int(m[3])
+        
+        N = x
+        N = (N << 4) | y
+        N = (N << 5) | s
+        N = (N << 1) | f
+        N = (N << 2) | r
+        N = (N << 3) | n
+        
+        return N
+    
+    # Decode number to move tuple (x,y,A001)
+    @staticmethod
+    def decode_move(N):
+        n = N & 0b111
+        r = N >> 3 & 0b11
+        f = N >> 5 & 0b1
+        s = chr((N >> 6 & 0b11111) + 65)
+        y = N >> 11 & 0b1111
+        x = N >> 15 & 0b1111
+        
+        return (x, y, '{}{}{}{}'.format(s,f,r,n))
+    
+    # Encode cell tuple (x,y) into a number
+    @staticmethod
+    def encode_cell(cell):
+        x,y = cell
+        
+        N = x
+        N = (N << 4) | y
+        
+        return N
+
+    # Decode number to cell tuple (x,y)
+    @staticmethod
+    def decode_cell(N):
+        y = N & 0b1111
+        x = N >> 4 & 0b1111
+        
+        return (x, y)
             
     # Compute and Initialize the move db with all possible moves that can be done on an empty board
     # Return a tuple of (move_idx, cell_idx)
     # move_idx = dict of {<move>:list of cells that this move covers}. <move>= (r,c,shape symbol+n) ex (0,0,A001)
     # cell_idx = dict of {<cell>:list of moves that cover this cell}.
     @staticmethod
-    def init_movedb():
+    def init_movedb(encode=True):
         move_idx = {}
         cell_idx = {}
         
@@ -197,6 +257,8 @@ class MoveDatabase :
                 for shape in shapes:
                     for n in range(1,shape.size + 1):
                         move = (posx,posy,'{}{}'.format(shape.symbol,n))
+                        if encode:
+                            move = MoveDatabase.encode_move(move)
                         
                         filled_positions_diff = shape.positions[n]
                         filled_positions_on_board = [(posx+fpdx, posy+fpdy) for (fpdx,fpdy) in filled_positions_diff]
@@ -205,16 +267,18 @@ class MoveDatabase :
                         
                         for (fpbx,fpby) in filled_positions_on_board:
                             cell = (fpbx,fpby)
+                            if encode : 
+                                cell = MoveDatabase.encode_cell(cell)
                             
                             if move in move_idx:
-                                move_idx[move].add(cell)
+                                move_idx[move].append(cell)
                             else:
-                                move_idx[move] = {cell}
+                                move_idx[move] = [cell]
                                 
                             if cell in cell_idx:
-                                cell_idx[cell].add(move)
+                                cell_idx[cell].append(move)
                             else:
-                                cell_idx[cell] = {move}
+                                cell_idx[cell] = [move]
                                 
         return (move_idx,cell_idx)
     
@@ -234,7 +298,7 @@ class MoveDatabase :
     @staticmethod
     def pickle_init_movedb():
         file_dir = os.path.dirname(os.path.realpath(__file__))
-        movedb = MoveDatabase.init_movedb()
+        movedb = MoveDatabase.init_movedb(encode=True)
         
         with open(join(file_dir,MoveDatabase.pickled_movedb_init_filename), "wb") as output_file:
             pickle.dump(movedb,output_file)
