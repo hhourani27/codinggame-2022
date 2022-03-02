@@ -1,6 +1,11 @@
 import numpy as np
 import random as rd
 import copy
+import pickle
+import marshal
+import os
+from os.path import join
+import json
 
 board_is_side_of_player_cache = {}
 
@@ -46,7 +51,10 @@ class Shape :
                     n = self.matrix[x][y]
                     self.positions[int(n)] = [(p[0]-x, p[1]-y) for p in initial_positions]
             
-
+    @staticmethod
+    # Return a set of all possible shape letters
+    def get_all_shape_letters():
+        return {'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U'}
 
     # Return a list of all possible non-rotated non-flipped shapes
     @staticmethod
@@ -95,6 +103,7 @@ class Shape :
                     
         return shape_orientations
     
+    # Return all possible shape orientations as a dict {<shape symbol ex. A00> : <Shape object>}
     @staticmethod
     def get_all_shapes_orientations():
         result = {}
@@ -105,6 +114,178 @@ class Shape :
             result = {**result,**s_or}
             
         return result
+
+class MoveDatabase :
+    
+    pickled_movedb_init_filename = "blocking_game_movedb_init.pickle"
+    marshaled_movedb_init_filename = "blocking_game_movedb_init.marshal"
+    json_movedb_init_filename = "blocking_game_movedb_init.json"
+    quickle_movedb_init_filename = "blocking_game_movedb_init.quickle"
+    pickled_movedb_init = None
+    
+    # Initialize move database with available letters
+    # shape_letters : set of letters {'A','B'...}
+    def __init__(self, shape_letters = None):
+        # Initialized move db with all possible letters
+        self.move_idx, self.cell_idx = MoveDatabase.init_movedb_pickled()
+        
+        if shape_letters is not None:
+            # Remove the letters that won't be used
+            letters_to_remove = Shape.get_all_shape_letters() - shape_letters
+            self.remove_shape_letters(letters_to_remove)
+            
+    
+    # Remove from the DB a set of letters
+    def remove_shape_letters(self, letters_to_remove):
+        # Remove all moves from move_idx that have those shape letters
+        moves_to_delete = set()
+        for move in list(self.move_idx.keys()):
+            if move[2][0] in letters_to_remove:
+                moves_to_delete.add(move)
+                del self.move_idx[move]
+        
+        # Remove all moves from the cell_idx that have those shape letters
+        for cell, moves in self.cell_idx.items():
+            self.cell_idx[cell].difference_update(moves_to_delete)
+            
+    def remove_shape_letter(self, letter_to_remove):
+        self.remove_shape_letters(set([letter_to_remove]))
+    
+    # Remove from the db a cell that is no longer usable
+    def remove_cell(self, cell):
+        #print('[Movedb] Removing cell {}'.format(cell))
+        moves_to_delete = self.cell_idx.pop(cell,None)
+        if moves_to_delete is not None:
+            for m in moves_to_delete:
+                #print('[Movedb] There are {} moves in move_idx'.format(len(self.move_idx)))
+                #print('[Movedb] Removing move {}'.format(m))
+                self.move_idx.pop(m, None)        
+#        self.move_idx = {move:filled_cells for move,filled_cells in self.move_idx.items() if cell not in filled_cells}
+        
+    def remove_cells(self, cells):
+        #print('[Movedb] Removing cells {}'.format(cells))
+        for cell in cells:
+            self.remove_cell(cell)
+    
+    # return all legal moves placed on a particular cell
+    def get_valid_moves(self, cells):
+        legal_moves = set()
+
+        if len(self.move_idx) == 0:
+            return legal_moves
+        
+        for r,c in cells:
+            legal_moves = legal_moves.union({move for move in self.move_idx.keys() if move[0] == r and move[1] == c})
+        
+        return legal_moves
+    
+    def is_valid_move(self, r, c, shape, n):
+        move = (r,c,'{}{}'.format(shape,n))
+        return move in self.move_idx
+    
+    # return the cell that are filled at a certain position
+    def get_filled_cells(self, move):
+        return self.move_idx[move]
+            
+    # Compute and Initialize the move db with all possible moves that can be done on an empty board
+    # Return a tuple of (move_idx, cell_idx)
+    # move_idx = dict of {<move>:list of cells that this move covers}. <move>= (r,c,shape symbol+n) ex (0,0,A001)
+    # cell_idx = dict of {<cell>:list of moves that cover this cell}.
+    @staticmethod
+    def init_movedb():
+        move_idx = {}
+        cell_idx = {}
+        
+        N = 13
+        shapes = Shape.get_all_shapes_orientations().values()
+        
+        for posx in range(N):
+            for posy in range(N):
+                for shape in shapes:
+                    for n in range(1,shape.size + 1):
+                        move = (posx,posy,'{}{}'.format(shape.symbol,n))
+                        
+                        filled_positions_diff = shape.positions[n]
+                        filled_positions_on_board = [(posx+fpdx, posy+fpdy) for (fpdx,fpdy) in filled_positions_diff]
+                        if any([fpbx < 0 or fpbx >= N or fpby < 0 or fpby >= N for (fpbx,fpby) in filled_positions_on_board]):
+                            continue
+                        
+                        for (fpbx,fpby) in filled_positions_on_board:
+                            cell = (fpbx,fpby)
+                            
+                            if move in move_idx:
+                                move_idx[move].add(cell)
+                            else:
+                                move_idx[move] = {cell}
+                                
+                            if cell in cell_idx:
+                                cell_idx[cell].add(move)
+                            else:
+                                cell_idx[cell] = {move}
+                                
+        return (move_idx,cell_idx)
+    
+    # read the initialized db from a pickled file
+    @staticmethod
+    def init_movedb_pickled():
+        if MoveDatabase.pickled_movedb_init is not None:
+            print('here also')
+            return pickle.loads(MoveDatabase.pickled_movedb_init)
+        
+        else :
+            print('here')
+            file_dir = os.path.dirname(os.path.realpath(__file__))
+            with open(join(file_dir,MoveDatabase.pickled_movedb_init_filename), 'rb') as f:
+                MoveDatabase.pickled_movedb_init = f.read()
+                return pickle.loads(MoveDatabase.pickled_movedb_init)
+                
+        
+        '''
+        with open(join(file_dir,MoveDatabase.pickled_movedb_init_filename), 'rb') as f:
+            movedb = pickle.load(f)
+        
+        return movedb
+    '''
+    # Helper : init the move db and pickle it
+    @staticmethod
+    def pickle_init_movedb():
+        movedb = MoveDatabase.init_movedb()
+        
+        with open(MoveDatabase.pickled_movedb_init_filename, "wb") as output_file:
+            pickle.dump(movedb,output_file)
+            
+    # read the initialized db from a marshaled file
+    @staticmethod
+    def init_movedb_marshaled():
+        file_dir = os.path.dirname(os.path.realpath(__file__))
+        with open(join(file_dir,MoveDatabase.marshaled_movedb_init_filename), 'rb') as f:
+            movedb = marshal.load(f)
+        
+        return movedb
+    
+    # Helper : init the move db and marshal it
+    @staticmethod
+    def marshal_init_movedb():
+        movedb = MoveDatabase.init_movedb()
+        
+        with open(MoveDatabase.marshaled_movedb_init_filename, "wb") as output_file:
+            marshal.dump(movedb,output_file)
+            
+    # read the initialized db from a json file
+    @staticmethod
+    def init_movedb_json():
+        with open(MoveDatabase.json_movedb_init_filename, 'r') as f:
+            movedb = json.load(f)
+        
+        return movedb
+    
+    # Helper : init the move db and json it
+    @staticmethod
+    def json_init_movedb():
+        movedb = MoveDatabase.init_movedb()
+        
+        with open(MoveDatabase.json_movedb_init_filename, "w") as output_file:
+            json.dump(movedb,output_file)    
 
 class BlockingGame:
     def __init__(self, nb_players):
@@ -131,7 +312,7 @@ class BlockingGame:
                 'shapes': self.allowed_shape_letters.copy(),
                 'score' : 0,
                 'past_moves': [],
-                'valid_moves': [],
+                'movedb': MoveDatabase(set(self.allowed_shape_letters)),
                 'first_play' : True,
                 'dead' : False
              }
@@ -140,22 +321,59 @@ class BlockingGame:
         
         # Initialize game run
         self.active_game = True
-        self.active_player_id = 0
-        self.turn_nb = 1
-        
-        
-        # Add valid moves for the first player
-        first_player = self.players[self.active_player_id]
-        valid_shapes = self.get_shapes(first_player['shapes'])
-        connected_positions = BlockingGame.get_well_connected_positions(self.board, self.N, self.active_player_id)
-        valid_moves = BlockingGame.get_valid_moves(self.board, self.N, self.active_player_id, valid_shapes, connected_positions)
-        first_player['valid_moves'] = valid_moves
+        self.active_player_id = -1
+        self.turn_nb = 0
         
         
         self.history = []
 
 
     def turn(self):
+        ## Select next player
+        next_player_id = (self.active_player_id + 1) % self.nb_players
+        pids = list(range(self.nb_players))
+        pids = pids[next_player_id:] + pids[:next_player_id]
+        
+        # Cycle through all players until we find one
+        found_next_player = False
+        for next_player_id in pids:
+            next_player = self.players[next_player_id]    
+            # If next player is already dead, move to the next one
+            if next_player['dead'] == True:
+                print('[Game] Player {} is already dead'.format(next_player_id))
+                continue
+            
+            # Check if player has shapes left
+            if len(next_player['shapes']) == 0:
+                print('[Game] Player {} has no shaped left'.format(next_player_id))
+                self.kill_player(next_player_id)
+                continue                
+            
+            # Check if next player has valid moves
+            connected_positions = BlockingGame.get_well_connected_positions(self.board, self.N, next_player_id)
+            if len(connected_positions) == 0 : 
+                print('[Game] Player {} has no connected positions left'.format(next_player_id))
+                self.kill_player(next_player_id)
+                continue
+            
+            valid_moves = next_player['movedb'].get_valid_moves(connected_positions)
+            if len(valid_moves) == 0 : 
+                print('[Game] Player {} has no valid moves left'.format(next_player_id))
+                self.kill_player(next_player_id)
+                continue
+            
+            found_next_player = True
+            self.active_player_id = next_player_id
+            self.turn_nb += 1
+            break
+        
+        # If no player was found, end the game
+        if found_next_player is False:
+            print('[Game] No player left : End game')
+            self.active_game = False
+            return (None,None)
+        
+        ## It there's a next player, send its message
         out = []
         pid = self.active_player_id
         player = self.players[self.active_player_id]
@@ -175,10 +393,7 @@ class BlockingGame:
             out.append(str(pid))
             out.append(str(self.N))
             out.append(''.join(self.allowed_shape_letters))
-        
-        # Output on each turn
-        connected_positions = BlockingGame.get_well_connected_positions(self.board, self.N, pid)
-        
+                
         out.extend(BlockingGame.board_to_string(self.board, connected_positions))
         
         last_moves = self.get_last_moves(pid)
@@ -186,7 +401,6 @@ class BlockingGame:
         for move in last_moves:
             out.append(str(pid) + ' ' + ' '.join(move))
         
-        valid_moves = player['valid_moves']
         out.append(str(len(valid_moves)))
         for move in valid_moves :
             out.append('{} {} {}'.format(str(move[1]),str(move[0]), move[2]))
@@ -208,61 +422,47 @@ class BlockingGame:
         player = self.players[self.active_player_id]
         shape = self.get_shape(shape_symbol)
         
+        # Verify that the move is legal
+        # TODO : may remove it to speed up, if we assume that players always output legal moves
         is_move_legal = True
-        if shape_letter not in player['shapes']:
+        if self.nb_players == 3 and player['first_play'] == True and self.active_player_id in [0,1] and shape_letter not in ['A','B','C','D']:
             is_move_legal = False
-        elif self.nb_players == 3 and player['first_play'] == True and self.active_player_id in [0,1] and shape_letter not in ['A','B','C','D']:
-            is_move_legal = False
-        elif not BlockingGame.is_valid_move(self.board, self.N, self.active_player_id, shape, x, y, n):
+        elif not player['movedb'].is_valid_move(x, y, shape_symbol, n):
             is_move_legal = False
             
         if is_move_legal == False:
             self.kill_player(self.active_player_id)
         else:
-            BlockingGame.place_shape_on_board(self.board, x, y, shape, n, self.active_player_id)
+            filled_cells = BlockingGame.place_shape_on_board(self.board, x, y, shape, n, self.active_player_id)
+            
+            # Update move databases
+                # Remove the letter from the active player's move db
+            #print('[Game] Removing shape {} from player {}\'s movedb'.format(shape_letter,player['id']))
+            player['movedb'].remove_shape_letter(shape_letter)
+                # Remove the filled cell from all the players
+            for p in self.players:
+                #print('[Game] Removing cells {} from player {}\'s movedb'.format(filled_cells,p['id']))
+                p['movedb'].remove_cells(filled_cells)
+                # remove the new side cells from the active player
+            side_cells = set()
+            for r,c in filled_cells:
+                side_cells = side_cells.union(BlockingGame.get_sides_cells(self.N,r,c))
+            side_cells = side_cells.difference(filled_cells)
+            #print('[Game] Removing cells {} from player {}\'s movedb'.format(side_cells,player['id']))
+            player['movedb'].remove_cells(side_cells)
+            
             player['past_moves'].append(move)
             player['first_play'] = False
             player['score'] = player['score'] + shape.size
             player['shapes'].remove(shape_letter)
             
-            if len(player['shapes']) == 0:
-                self.kill_player(self.active_player_id) 
          
         self.record_turn(text)
         
-        self.turn_nb += 1
-        self.set_next_player()
-        
-        
-        return self.active_game
-        
-                
-    def set_next_player(self):
-        
-        next_player_id = (self.active_player_id + 1) % self.nb_players
-        pids = list(range(self.nb_players))
-        pids = pids[next_player_id:] + pids[:next_player_id]
-        
-        for next_player_id in pids:
-            next_player = self.players[next_player_id]            
-            if next_player['dead'] == True:
-                continue
-            
-            valid_shapes = self.get_shapes(next_player['shapes'])
-            connected_positions = BlockingGame.get_well_connected_positions(self.board, self.N, next_player_id)
-            valid_moves = BlockingGame.get_valid_moves(self.board, self.N, next_player_id, valid_shapes, connected_positions)
-            next_player['valid_moves'] = valid_moves
-            
-            if len(valid_moves) == 0:
-                self.kill_player(next_player_id)
-                continue
-            
-            self.active_player_id = next_player_id
-            return
-        
-        self.active_game = False
+        return
 
     def kill_player(self,player_id):
+        print('[Game] Killing player {}'.format(player_id))
         self.players[player_id]['dead'] = True            
             
         
@@ -295,12 +495,9 @@ class BlockingGame:
         record['move'] = move
         record['board'] = ''.join(self.board.flatten())
         record['active_player'] = self.active_player_id
-        players = copy.deepcopy(self.players)
-        for p in players:
-            del p['past_moves']
-            del p['first_play']
-            del p['valid_moves']
         
+        players = [ {k:v for k,v in p.items() if k in ['id','shapes','score','dead'] } for p in self.players]
+        players = copy.deepcopy(players)
         record['players'] = players
         
         self.history.append(record)
@@ -359,6 +556,11 @@ class BlockingGame:
     @staticmethod
     def get_sides(board,board_size,x,y):
         return [board[x+d[0],y+d[1]] for d in [(-1,0),(0,1),(1,0),(0,-1)] if 0<=x+d[0]<=board_size-1 and 0<=y+d[1]<=board_size-1]
+
+    # Returns the cell positions at the sides of (x,y) (exclude cells outside the board)            
+    @staticmethod
+    def get_sides_cells(board_size,x,y):
+        return {(x+d[0],y+d[1]) for d in [(-1,0),(0,1),(1,0),(0,-1)] if 0<=x+d[0]<=board_size-1 and 0<=y+d[1]<=board_size-1}
     
     
     @staticmethod
@@ -446,6 +648,8 @@ class BlockingGame:
         
         for (x,y) in filled_positions_on_board:
             board[x,y] = str(player_id)
+        
+        return filled_positions_on_board
 
     # Returns the last moves of the previous player
     def get_last_moves(self, player_id):

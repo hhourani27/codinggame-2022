@@ -47,20 +47,24 @@ class Simulator:
         
         while True:
             player_id, msg_array = game.turn()
-            for msg in msg_array:
-                in_q[player_id].put(msg)
-                
-            msg = out_q[player_id].get()
-            out_q[player_id].task_done()
             
-            active = game.move(msg)
-            
-            # Did the game end
-            if active == False:
+            # The game has ended
+            if player_id is None:
                 # Kill threads
                 for q in in_q:
                     q.put(None)
                 break
+            
+            print('Turn : {} '.format(player_id))
+            for msg in msg_array:
+                #print(msg)
+                in_q[player_id].put(msg)
+                
+            msg = out_q[player_id].get()
+            out_q[player_id].task_done()
+            print('Player\'s message: {}'.format(msg))
+            
+            game.move(msg)
             
         
         # Wait for player threads to terminate
