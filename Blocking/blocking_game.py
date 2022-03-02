@@ -118,9 +118,6 @@ class Shape :
 class MoveDatabase :
     
     pickled_movedb_init_filename = "blocking_game_movedb_init.pickle"
-    marshaled_movedb_init_filename = "blocking_game_movedb_init.marshal"
-    json_movedb_init_filename = "blocking_game_movedb_init.json"
-    quickle_movedb_init_filename = "blocking_game_movedb_init.quickle"
     pickled_movedb_init = None
     
     # Initialize move database with available letters
@@ -153,14 +150,10 @@ class MoveDatabase :
     
     # Remove from the db a cell that is no longer usable
     def remove_cell(self, cell):
-        #print('[Movedb] Removing cell {}'.format(cell))
         moves_to_delete = self.cell_idx.pop(cell,None)
         if moves_to_delete is not None:
             for m in moves_to_delete:
-                #print('[Movedb] There are {} moves in move_idx'.format(len(self.move_idx)))
-                #print('[Movedb] Removing move {}'.format(m))
                 self.move_idx.pop(m, None)        
-#        self.move_idx = {move:filled_cells for move,filled_cells in self.move_idx.items() if cell not in filled_cells}
         
     def remove_cells(self, cells):
         #print('[Movedb] Removing cells {}'.format(cells))
@@ -228,64 +221,23 @@ class MoveDatabase :
     # read the initialized db from a pickled file
     @staticmethod
     def init_movedb_pickled():
-        if MoveDatabase.pickled_movedb_init is not None:
-            print('here also')
+        if MoveDatabase.pickled_movedb_init is not None :
             return pickle.loads(MoveDatabase.pickled_movedb_init)
         
         else :
-            print('here')
             file_dir = os.path.dirname(os.path.realpath(__file__))
             with open(join(file_dir,MoveDatabase.pickled_movedb_init_filename), 'rb') as f:
                 MoveDatabase.pickled_movedb_init = f.read()
                 return pickle.loads(MoveDatabase.pickled_movedb_init)
                 
-        
-        '''
-        with open(join(file_dir,MoveDatabase.pickled_movedb_init_filename), 'rb') as f:
-            movedb = pickle.load(f)
-        
-        return movedb
-    '''
     # Helper : init the move db and pickle it
     @staticmethod
     def pickle_init_movedb():
-        movedb = MoveDatabase.init_movedb()
-        
-        with open(MoveDatabase.pickled_movedb_init_filename, "wb") as output_file:
-            pickle.dump(movedb,output_file)
-            
-    # read the initialized db from a marshaled file
-    @staticmethod
-    def init_movedb_marshaled():
         file_dir = os.path.dirname(os.path.realpath(__file__))
-        with open(join(file_dir,MoveDatabase.marshaled_movedb_init_filename), 'rb') as f:
-            movedb = marshal.load(f)
-        
-        return movedb
-    
-    # Helper : init the move db and marshal it
-    @staticmethod
-    def marshal_init_movedb():
         movedb = MoveDatabase.init_movedb()
         
-        with open(MoveDatabase.marshaled_movedb_init_filename, "wb") as output_file:
-            marshal.dump(movedb,output_file)
-            
-    # read the initialized db from a json file
-    @staticmethod
-    def init_movedb_json():
-        with open(MoveDatabase.json_movedb_init_filename, 'r') as f:
-            movedb = json.load(f)
-        
-        return movedb
-    
-    # Helper : init the move db and json it
-    @staticmethod
-    def json_init_movedb():
-        movedb = MoveDatabase.init_movedb()
-        
-        with open(MoveDatabase.json_movedb_init_filename, "w") as output_file:
-            json.dump(movedb,output_file)    
+        with open(join(file_dir,MoveDatabase.pickled_movedb_init_filename), "wb") as output_file:
+            pickle.dump(movedb,output_file)
 
 class BlockingGame:
     def __init__(self, nb_players):

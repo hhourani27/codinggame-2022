@@ -1,7 +1,6 @@
 from blocking_game import BlockingGame
 import blocking_game
 from blocking_random_player import BlockingRandomPlayer
-from blocking_nn_player import BlockingNNPlayer
 
 import sys
 sys.path.insert(1, 'C:/Users/hhour/Desktop/codinggame/common')
@@ -15,6 +14,7 @@ players_attribs = [{'name':'habib'},{'name':'rony'}]
 
 #%%
 runs = 10
-Simulator.run(BlockingGame, players, nb_games=runs, record_dir=record_dir)
-#Simulator.run(BlockingGame, players, players_attribs=players_attribs, nb_games=runs)
-#Simulator.run(BlockingGame, players, nb_games=runs)
+#Simulator.run(BlockingGame, players, nb_games=runs, record_dir=record_dir)
+#Simulator.run(BlockingGame, players, players_attribs=players_attribs*--, nb_games=runs)
+Simulator.run(BlockingGame, players, nb_games=runs)
+
