@@ -45,10 +45,6 @@ class BlockingRandomPlayer(Player):
             # Write an action using print
             # To debug: print("Debug messages...", file=sys.stderr, flush=True)
         
-            
-            if nb_players == 3 and turn == 0 and player_id in [0,1]:
-                valid_moves = [v for v in valid_moves if v[2][0] in ['A','B','C','D']]
-            
             chosen_move = rd.choice(valid_moves)
                         
             turn += 1

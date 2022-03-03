@@ -2,8 +2,6 @@ import numpy as np
 import random as rd
 import copy
 
-board_is_side_of_player_cache = {}
-
 class Shape :
     
     SHAPE_CACHE = {}
@@ -135,7 +133,10 @@ class Shape :
         return result
 
 class BlockingGame:
-    def __init__(self, nb_players):
+    # CHECK_VALID_MOVES flag : if False assumes that all moves the players send are valid
+    def __init__(self, nb_players, CHECK_VALID_MOVES=False):
+        self.CHECK_VALID_MOVES = CHECK_VALID_MOVES
+        
         # Initialize board
         self.N = 13
         self.board = np.full((self.N,self.N),'.')
@@ -272,12 +273,14 @@ class BlockingGame:
         shape = self.get_shape(shape_symbol)
         
         is_move_legal = True
-        if shape_symbol not in player['shapes']:
-            is_move_legal = False
-        elif self.nb_players == 3 and player['first_play'] == True and self.active_player_id in [0,1] and shape_letter not in ['A','B','C','D']:
-            is_move_legal = False
-        elif not BlockingGame.is_valid_move(self.board, self.N, self.active_player_id, shape, x, y):
-            is_move_legal = False
+        
+        if self.CHECK_VALID_MOVES:
+            if shape_symbol not in player['shapes']:
+                is_move_legal = False
+            elif self.nb_players == 3 and player['first_play'] == True and self.active_player_id in [0,1] and shape_letter not in ['A','B','C','D']:
+                is_move_legal = False
+            elif not BlockingGame.is_valid_move(self.board, self.N, self.active_player_id, shape, x, y):
+                is_move_legal = False
             
         if is_move_legal == False:
             print('[Game] Player {} sent an invalid move {}'.format(self.active_player_id,shape_symbol))
@@ -404,19 +407,7 @@ class BlockingGame:
     @staticmethod
     def get_side_pos(board_size,x,y):
         return [(x+d[0],y+d[1]) for d in [(-1,0),(0,1),(1,0),(0,-1)] if 0<=x+d[0]<=board_size-1 and 0<=y+d[1]<=board_size-1]
-    
-    @staticmethod
-    def is_side_of_player_cached(board,board_size,x,y,player_id,board_hash):
         
-        key = (board_hash,x,y,player_id)
-        if key not in board_is_side_of_player_cache:
-            value = BlockingGame.is_side_of_player(board,board_size,x,y,player_id)
-            board_is_side_of_player_cache[key] = value
-            return value
-        else:
-            return board_is_side_of_player_cache[key]
-        
-    
     @staticmethod
     def is_side_of_player(board,board_size,x,y,player_id):
         sides = BlockingGame.get_side_values(board, board_size, x, y)
@@ -441,6 +432,9 @@ class BlockingGame:
         
         p_board = player['board']
         shapes = player['shapes']
+        
+        if self.nb_players == 3 and player['first_play'] == True and player['id'] in [0,1]:
+            shapes = {k:v for k,v in shapes.items() if v.letter in ['A','B','C','D'] } 
         
         valid_moves = []
         
@@ -470,7 +464,7 @@ class BlockingGame:
         return b81
     
     @staticmethod
-    def is_valid_move(board, board_size, player_id, shape, posx, posy, connected_positions=None, board_hash=None):
+    def is_valid_move(board, board_size, player_id, shape, posx, posy, connected_positions=None):
         filled_positions_diff = shape.pos_diff
         # get the list of cells that will be filled by this shape
         filled_positions_on_board = [(posx+fpdx, posy+fpdy) for (fpdx,fpdy) in filled_positions_diff]
@@ -482,16 +476,10 @@ class BlockingGame:
             # Check if the shape doesn't cover an existing shape
             if board[fpbx,fpby] != '.':
                 return False
-            
             # Check if the shape doesn't cover a side cell of the same player's shape
-            # If board_hash is provided, use it for faster query of is_side_of_player
-            if board_hash is not None:
-               if BlockingGame.is_side_of_player_cached(board, board_size, fpbx, fpby, player_id,board_hash):
-                   return False
-            else:
-                if BlockingGame.is_side_of_player(board, board_size, fpbx, fpby, player_id):
-                    return False
-            
+            if BlockingGame.is_side_of_player(board, board_size, fpbx, fpby, player_id):
+                return False
+        
         # Check if the user is putting a shape on at least one connected position
         if connected_positions is None :
             connected_positions = BlockingGame.get_well_connected_positions(board, board_size, player_id)
