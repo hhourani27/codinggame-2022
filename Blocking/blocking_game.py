@@ -449,12 +449,12 @@ class BlockingGame:
     @staticmethod
     def board_to_81bit(board, board_size, center):
         # Take a 9x9 slice of the player's board
-        board81 = board[max(center[0]-4,0):min(center[0]+5,board_size),max(center[1]-4,0):min(center[1]+5,board_size)]
-        board81 = np.pad(board81,
-                   ((max(4-center[0],0), max(center[0]-8,0)),
-                    (max(4-center[1],0), max(center[1]-8,0))),
-                    mode='constant', constant_values=1)
-        
+        board81 = np.ones((9,9),dtype=int)
+        x = board[
+            max(center[0]-4,0):min(center[0]+5,board_size),
+            max(center[1]-4,0):min(center[1]+5,board_size)]
+        board81[max(4-center[0],0):min(17-center[0],9),max(4-center[1],0):min(17-center[1],9)] = x
+     
         # Then encode it as an 81-bit number
         board81 = board81.flatten()
         b81 = 0

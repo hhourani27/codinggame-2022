@@ -43,7 +43,7 @@ class Simulator:
             pt.start()
         
         #Start game
-        game = Game(nb_players)
+        game = Game(nb_players, CHECK_VALID_MOVES=False)
         
         while True:
             player_id, msg_array = game.turn()
