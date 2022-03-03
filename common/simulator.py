@@ -43,7 +43,7 @@ class Simulator:
             pt.start()
         
         #Start game
-        game = Game(nb_players, CHECK_VALID_MOVES=False)
+        game = Game(nb_players)
         
         while True:
             player_id, msg_array = game.turn()
@@ -54,13 +54,13 @@ class Simulator:
                     q.put(None)
                 break
 
-            print('Sending player {} a message'.format(player_id))
+            #print('Sending player {} a message'.format(player_id))
             for msg in msg_array:
                 in_q[player_id].put(msg)
                 
             msg = out_q[player_id].get()
             out_q[player_id].task_done()
-            print('Player\'s message: {}'.format(msg))
+            #print('Player\'s message: {}'.format(msg))
             
             game.move(msg)
                     

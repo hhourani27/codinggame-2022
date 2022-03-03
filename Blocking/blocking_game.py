@@ -161,7 +161,6 @@ class BlockingGame:
                 'board' : np.zeros((self.N,self.N), dtype=int), #The board from the POV of the player : 0 allowed, 1 not allowed
                 'score' : 0,
                 'past_moves': [],
-                'valid_moves': [], #TODO : remove it might not need it
                 'first_play' : True,
                 'dead' : False
              }
@@ -189,37 +188,37 @@ class BlockingGame:
             next_player = self.players[next_player_id]    
             # If next player is already dead, move to the next one
             if next_player['dead'] == True:
-                print('[Game] Player {} is already dead'.format(next_player_id))
+                #print('[Game] Player {} is already dead'.format(next_player_id))
                 continue
             
             # Check if player has no shapes left
             if len(next_player['letters']) == 0:
-                print('[Game] Player {} has no shapes left'.format(next_player_id))
+                #print('[Game] Player {} has no shapes left'.format(next_player_id))
                 self.kill_player(next_player_id)
                 continue                
             
             # Check if next player has valid moves
             connected_positions = BlockingGame.get_well_connected_positions(self.board, self.N, next_player_id)
             if len(connected_positions) == 0 : 
-                print('[Game] Player {} has no connected positions left'.format(next_player_id))
+                #print('[Game] Player {} has no connected positions left'.format(next_player_id))
                 self.kill_player(next_player_id)
                 continue
             
             valid_moves = self.get_valid_moves(next_player, connected_positions)
             if len(valid_moves) == 0 : 
-                print('[Game] Player {} has no valid moves left'.format(next_player_id))
+                #print('[Game] Player {} has no valid moves left'.format(next_player_id))
                 self.kill_player(next_player_id)
                 continue
             
             found_next_player = True
             self.active_player_id = next_player_id
             self.turn_nb += 1
-            print('[Game] Turn {} : Player {}'.format(self.turn_nb, self.active_player_id))
+            #print('[Game] Turn {} : Player {}'.format(self.turn_nb, self.active_player_id))
             break
         
         # If no player was found, end the game
         if found_next_player is False:
-            print('[Game] No player left : End game')
+            #print('[Game] No player left : End game')
             self.active_game = False
             return (None,None)        
         
@@ -258,7 +257,6 @@ class BlockingGame:
         
         return (self.active_player_id,out)
 
-    #TODO: assume that moves are legal, and do not verify for performance        
     def move(self, text):        
         # Extract move information
         move = text.split()
