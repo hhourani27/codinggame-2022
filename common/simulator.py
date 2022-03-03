@@ -54,7 +54,7 @@ class Simulator:
                     q.put(None)
                 break
 
-            print('Turn : {} '.format(player_id))
+            print('Sending player {} a message'.format(player_id))
             for msg in msg_array:
                 in_q[player_id].put(msg)
                 

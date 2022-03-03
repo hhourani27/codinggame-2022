@@ -5,6 +5,9 @@ import copy
 board_is_side_of_player_cache = {}
 
 class Shape :
+    
+    SHAPE_CACHE = {}
+    
     def __init__(self, letter, base_shape_flat_str, rows, cols, flip, rotate, n):
         self.letter = letter
         self.flip = flip
@@ -56,10 +59,10 @@ class Shape :
             
             b81 = b81 | c
             
-        self.bit81 = c
+        self.bit81 = b81
 
     # Return a all base shape definitions as a tuple
-    # (letter, string representation, #rows, #cols, shape size)
+    # (letter, flat_str, flat_hash, #rows, #cols, shape size)
     @staticmethod
     def get_shape_definitions():
         return (
@@ -96,6 +99,10 @@ class Shape :
     def generate_all_shapes(shape_definition):
         letter, flat_string, rows, cols, size = shape_definition
         
+        # see if it's already in the cache
+        if letter in Shape.SHAPE_CACHE:
+            return Shape.SHAPE_CACHE[letter]
+        
         shapes = {}
         shape_hashes = set()
         
@@ -107,7 +114,8 @@ class Shape :
                     if shape_hash not in shape_hashes:
                         shapes[shape.symbol] = shape
                         shape_hashes.add(shape_hash)
-                    
+                        
+        Shape.SHAPE_CACHE[letter] = shapes                    
         return shapes
     
     # If letters is None: Return all shapes
@@ -205,7 +213,7 @@ class BlockingGame:
             found_next_player = True
             self.active_player_id = next_player_id
             self.turn_nb += 1
-            print('[Game] It`s player {}\'s turn'.format(next_player_id))
+            print('[Game] Turn {} : Player {}'.format(self.turn_nb, self.active_player_id))
             break
         
         # If no player was found, end the game
@@ -222,16 +230,14 @@ class BlockingGame:
         if player['first_play']:
             out.append(str(self.nb_shapes_per_player))
             
-            shape_defs = Shape.get_shape_definitions()
-            
-            for s_def in shape_defs :
-                if s_def[0] in self.letters:
-                    out.append(' '.join([
-                        s_def[0],
-                        str(s_def[2]),
-                        str(s_def[1]),
-                        s_def[3]
-                        ]))
+            for letter in self.letters:
+                s001 = self.get_shape('{}001'.format(letter))
+                out.append(' '.join([
+                    s001.letter,
+                    str(s001.cols),
+                    str(s001.rows),
+                    s001.flat_hash
+                    ]))
             out.append(str(self.nb_players))
             out.append(str(pid))
             out.append(str(self.N))
@@ -274,6 +280,7 @@ class BlockingGame:
             is_move_legal = False
             
         if is_move_legal == False:
+            print('[Game] Player {} sent an invalid move {}'.format(self.active_player_id,shape_symbol))
             self.kill_player(self.active_player_id)
         else:
             filled_pos = BlockingGame.place_shape_on_board(self.board, x, y, shape, str(self.active_player_id))
@@ -285,7 +292,7 @@ class BlockingGame:
             # Update all the player's board
             for p in self.players:
                 if p['dead'] is False:
-                    BlockingGame.place_shape_on_board(player['board'], x, y, shape, 1)
+                    BlockingGame.place_shape_on_board(p['board'], x, y, shape, 1)
             
             # Add the sides that are not allowed anymore for the player
             for fpx,fpy in filled_pos:
@@ -301,32 +308,6 @@ class BlockingGame:
         self.record_turn(text)
         
         return
-        
-                
-    def set_next_player(self):
-        
-        next_player_id = (self.active_player_id + 1) % self.nb_players
-        pids = list(range(self.nb_players))
-        pids = pids[next_player_id:] + pids[:next_player_id]
-        
-        for next_player_id in pids:
-            next_player = self.players[next_player_id]            
-            if next_player['dead'] == True:
-                continue
-            
-            valid_shapes = self.get_shapes(next_player['shapes'])
-            connected_positions = BlockingGame.get_well_connected_positions(self.board, self.N, next_player_id)
-            valid_moves = BlockingGame.get_valid_moves(self.board, self.N, next_player_id, valid_shapes, connected_positions)
-            next_player['valid_moves'] = valid_moves
-            
-            if len(valid_moves) == 0:
-                self.kill_player(next_player_id)
-                continue
-            
-            self.active_player_id = next_player_id
-            return
-        
-        self.active_game = False
 
     def kill_player(self,player_id):
         self.players[player_id]['dead'] = True            
@@ -334,10 +315,7 @@ class BlockingGame:
         
     # Return the shape object from the shape_symbol
     def get_shape(self, shape_symbol):
-        sletter = shape_symbol[0]
-        shapes_or = self.shapes_oriented[sletter]
-        
-        return [s for s in shapes_or if s.symbol==shape_symbol][0]
+        return self.shapes[shape_symbol]
     
     # Return all shape objects for all shape letters
     def get_shapes(self, shape_letters):
@@ -441,7 +419,7 @@ class BlockingGame:
     
     @staticmethod
     def is_side_of_player(board,board_size,x,y,player_id):
-        sides = BlockingGame.get_sides(board, board_size, x, y)
+        sides = BlockingGame.get_side_values(board, board_size, x, y)
         if str(player_id) in sides:
             return True
         return False
@@ -469,9 +447,6 @@ class BlockingGame:
         for n_pos in connected_positions:
             board81 = BlockingGame.board_to_81bit(p_board, self.N, n_pos)
             for shape in shapes.values() :
-                print('{0:b}'.format(shape.bit81))
-                print('{0:b}'.format(board81))
-                print('{0:b}'.format(shape.bit81 & board81))
                 if shape.bit81 & board81 == 0:
                     valid_moves.append((*n_pos,shape.symbol))
                     
@@ -491,12 +466,7 @@ class BlockingGame:
         b81 = 0
         for i in range(0,81):
             b81 = b81 | (int(board81[i]) << (80-i))
-            '''
-            print('{0:b}'.format(board81[i]))
-            print('{0:b}'.format(int(board81[i]) << (80-i)))
-            print('{0:b}'.format(b81))
-            print('---')
-            '''
+            
         return b81
     
     @staticmethod
