@@ -111,6 +111,9 @@ class ViewerCli:
         
     def draw_players(self, start_row):
         
+        if 'players' not in self.turn:
+            return 
+        
         row = start_row
         col = 0
         

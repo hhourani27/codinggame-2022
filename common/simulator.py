@@ -7,7 +7,8 @@ class Simulator:
 
     def run(Game, Players, nb_games=1, players_attribs=None,
             record_messages=False, record_message_dir=None,
-            record_game=False, record_game_dir=None) :
+            record_game=False, record_game_dir=None,
+            debug=False, check_valid_moves = False) :
         '''
         Parameters
         ----------
@@ -26,7 +27,11 @@ class Simulator:
         record_game : Bool, optional
             if True record messages that are passed between the game & the players. The default is False.            
         record_game_dir : String, optional
-            The folder where to save the game    
+            The folder where to save the game
+        debug : bool, optional
+            print exchanged messages in console
+        check_valid_moves : bool, optional
+            if False, assumes that players always send valid moves (saving checking time)
 
         Returns
         -------
@@ -38,7 +43,7 @@ class Simulator:
         messages_records = []
         for n in range(1,nb_games+1):
             print('Start game {}'.format(n))
-            game, messages = Simulator.run_game(Game, Players, players_attribs)            
+            game, messages = Simulator.run_game(Game, Players, players_attribs, debug, check_valid_moves)            
             print('End game {}'.format(n))
             
             if record_game:
@@ -60,7 +65,7 @@ class Simulator:
                     messages_records = []
 
     
-    def run_game(Game, Players, players_attribs=None):
+    def run_game(Game, Players, players_attribs=None, debug=False, check_valid_moves=False):
         
         '''
         Parameters
@@ -103,7 +108,7 @@ class Simulator:
             pt.start()
         
         #Start game
-        game = Game(nb_players)
+        game = Game(nb_players, CHECK_VALID_MOVES=check_valid_moves)
         
         messages = []
         while True:
@@ -114,13 +119,19 @@ class Simulator:
                 for q in in_q:
                     q.put(None)
                 break
-
+            
+            if debug:
+                print('Player {}\' turn'.format(player_id))
+                print('\tSending message to player : {}'.format(msg_array))
             messages.append((-1, player_id, msg_array))
             for msg in msg_array:
                 in_q[player_id].put(msg)
                 
             msg = out_q[player_id].get()
             out_q[player_id].task_done()
+            
+            if debug:
+                print('\tReceived message from player : {}'.format(msg))
             messages.append((player_id,-1,[msg]))
             
             game.move(msg)
