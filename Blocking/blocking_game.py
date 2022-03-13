@@ -425,7 +425,6 @@ class BlockingGame:
         return [''.join(row) for row in output]
         
     # Return a list of valid moves (x,y,Q001)
-    # Input : shapes : a list of all allowed shape orientations
     def get_valid_moves(self, player, connected_positions):
         
         p_board = player['board']
