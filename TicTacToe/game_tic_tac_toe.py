@@ -127,6 +127,12 @@ class TicTacToe:
         
         return record
     
+    def get_winners(self):
+        assert self.active == False, 'Can\'t get winners. Game is still running'
+        
+        return self.winners
+
+    
  
     def get_valid_moves(board_bin):
         '''

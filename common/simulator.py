@@ -35,15 +35,30 @@ class Simulator:
 
         Returns
         -------
-        None.
+        A Nx3 array :
+            A row for each player
+            3 columns for the number of wins, losses, ties
 
         '''
         
         game_records = []
         messages_records = []
+        game_results = [[0,0,0] for i in range(len(Players))]
+        
         for n in range(1,nb_games+1):
             print('Start game {}'.format(n))
             game, messages = Simulator.run_game(Game, Players, players_attribs, debug, check_valid_moves)            
+            
+            # Update winner results
+            winners = game.get_winners()
+            for p in range(len(Players)):
+                if p not in winners:
+                    game_results[p][1] += 1
+                elif p in winners and len(winners) == 1:
+                    game_results[p][0] += 1
+                else:
+                    game_results[p][2] += 1
+            
             print('End game {}'.format(n))
             
             if record_game:
@@ -63,7 +78,8 @@ class Simulator:
                     with open(join(record_message_dir,file_name), 'w') as out_file:
                         json.dump(messages_records, out_file, indent=1)
                     messages_records = []
-
+                    
+        return game_results
     
     def run_game(Game, Players, players_attribs=None, debug=False, check_valid_moves=False):
         
