@@ -6,7 +6,7 @@ import sys
 sys.path.insert(1, 'C:/Users/hhour/Desktop/codinggame/common')
 from simulator import Simulator
 
-players = [PlayerTicTacToeMinimax,PlayerTicTacToeRandom]
+players = [PlayerTicTacToeRandom,PlayerTicTacToeMinimax]
 
 #%%
 runs = 100

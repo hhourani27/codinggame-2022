@@ -117,7 +117,7 @@ class PlayerTicTacToeMinimax(Player):
                     
                     if best_val_t > best_val :
                         best_val = best_val_t
-                        best_move = best_move_t
+                        best_move = move
                     alpha = max(alpha, best_val)
                     if beta <= alpha:
                         break
@@ -136,7 +136,7 @@ class PlayerTicTacToeMinimax(Player):
                     best_move_t, best_val_t = minimax(child, alpha, beta)
                     if best_val_t < best_val:
                         best_val = best_val_t
-                        best_move = best_move_t
+                        best_move = move
                     beta = min(beta, best_val)
                     if beta <= alpha :
                         break
