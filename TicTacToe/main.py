@@ -1,12 +1,11 @@
-from game_tic_tac_toe import TicTacToe
+from game_tic_tac_toe_9x9 import TicTacToe
 from player_tictactoe_random import PlayerTicTacToeRandom
-from player_tictactoe_minimax import PlayerTicTacToeMinimax
 
 import sys
 sys.path.insert(1, 'C:/Users/hhour/Desktop/codinggame/common')
 from simulator import Simulator
 
-players = [PlayerTicTacToeRandom,PlayerTicTacToeMinimax]
+players = [PlayerTicTacToeRandom,PlayerTicTacToeRandom]
 
 #%%
 runs = 100

@@ -36,13 +36,20 @@ class ViewerCli:
         
         # Init cell styles that will be used to draw the board
         self.cell_styles = {}
-        i = 20
+        color_idx = 20
+        pair_idx = 20
         for k,v in self.game['board']['style'].items():
-            r,g,b = [int(c*1000/255) for c in v]
-            curses.init_color(i, r, g, b)
-            curses.init_pair(i, -1, i)
-            self.cell_styles[k] = i
-            i += 1
+            txt = v['t']
+            bck_color = [int(c*1000/255) for c in v['bc']] # [r,g,b]
+            txt_color = [int(c*1000/255) for c in v['tc']]
+
+            curses.init_color(color_idx, *bck_color)
+            curses.init_color(color_idx+1, *txt_color)
+            curses.init_pair(pair_idx, color_idx+1, color_idx)
+            
+            self.cell_styles[k] = {'txt':txt, 'color':pair_idx}
+            color_idx += 2
+            pair_idx += 1
 
         
     def read_turn(self, turn_id):
@@ -99,12 +106,20 @@ class ViewerCli:
         board_size = self.game['board']['size']
         board = np.array(list(self.turn['board'])).reshape((board_size,board_size))
         
-        cell_w = 2
+        cell_w = 3
+        
+        for i in range(board_size):
+            self.screen.addstr(start_row, cell_w + i*cell_w, f" {i} ")
+        
+        start_row += 1
         for r in range(board_size):
+            self.screen.addstr(start_row+r, 0, f" {r} ")
+
             for c in range(board_size):
-                self.screen.addstr(start_row+r, c*cell_w, 
-                                   ' '*cell_w, 
-                                   curses.color_pair(self.cell_styles[board[r,c]]))
+                v = board[r,c]
+                self.screen.addstr(start_row+r, cell_w + c*cell_w, 
+                                   f" {self.cell_styles[v]['txt']} ", 
+                                   curses.color_pair(self.cell_styles[v]['color']))
         
         return start_row + r + 1
         
