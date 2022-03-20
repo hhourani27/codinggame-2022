@@ -8,7 +8,8 @@ from simulator import Simulator
 players = [PlayerTicTacToeRandom,PlayerTicTacToeRandom]
 
 #%%
-runs = 100
+runs = 1000
 results = Simulator.run(TicTacToe, players, nb_games=runs,
               record_game=True, record_game_dir='C:/Users/hhour/Desktop/codinggame/TicTacToe/game_records',
-              debug=False, check_valid_moves=True)
+              record_messages=True, record_message_dir='C:/Users/hhour/Desktop/codinggame/TicTacToe/game_messages',
+              debug=False, check_valid_moves=False)
