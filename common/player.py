@@ -1,5 +1,6 @@
 import random as rd
 import sys
+import traceback
 import builtins as __builtin__
 
 class Player:
@@ -21,7 +22,7 @@ class Player:
         
         return msg
     
-    def print(self,msg,file=None):
+    def print(self, msg, file=None, flush=None):
         if file is not None:
             __builtin__.print(msg)
         else:
@@ -31,7 +32,7 @@ class Player:
         try:
             self.custom_code(self.input, self.print)
         except Exception as e:
-            pass
+            __builtin__.print(traceback.format_exc())
     
     # Abstract method
     def custom_code(self, input, print):
