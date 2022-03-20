@@ -329,7 +329,16 @@ class TestTicTacToe(unittest.TestCase):
         self.assertEqual(TicTacToe.set_bit(0b100100100, 0, 2), 0b101100100)
         self.assertEqual(TicTacToe.set_bit(0b100000100, 1, 0), 0b100100100)
 
-        
+    def test_count_1s(self):
+        self.assertEqual(TicTacToe.count_1s(0b000000000), 0)
+        self.assertEqual(TicTacToe.count_1s(0b100000000), 1)
+        self.assertEqual(TicTacToe.count_1s(0b000010000), 1)
+        self.assertEqual(TicTacToe.count_1s(0b000000001), 1)
+        self.assertEqual(TicTacToe.count_1s(0b100100100), 3)
+        self.assertEqual(TicTacToe.count_1s(0b101101101), 6)
+        self.assertEqual(TicTacToe.count_1s(0b111011111), 8)
+        self.assertEqual(TicTacToe.count_1s(0b111111111), 9)
+
 #%%    
 
     def board_2Darray_to_binary(board):

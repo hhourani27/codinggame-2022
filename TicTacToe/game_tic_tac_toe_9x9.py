@@ -109,8 +109,14 @@ class TicTacToe:
             self.winners = [pid]
         elif self.locked_squares == 0b111111111:
             self.active = False
-            self.winners = [0,1]
-        
+            won_square_count = [TicTacToe.count_1s(sq) for sq in self.p_squares]
+            if won_square_count[0] > won_square_count[1]:
+                self.winners = [0]
+            elif won_square_count[0] < won_square_count[1]:
+                    self.winners = [1]
+            else:
+                self.winners = [0,1]
+
         self.record_turn()
         return
     
@@ -399,6 +405,14 @@ class TicTacToe:
                 return True
             
         return False
+    
+    @staticmethod
+    def count_1s(binary):
+        '''
+        Return the number of set bits in a binary numner
+
+        '''
+        return bin(binary).count('1')
 
     @staticmethod    
     def next_player(player_id):
