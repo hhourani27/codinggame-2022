@@ -293,24 +293,23 @@ class PlayerTicTacToeMCTS(Player):
                 time_limit : running time of the Monte Carlo Tree Search in seconds
                     
                 '''
-                print("[MCTS] Start", file=sys.stderr)
+                #print("[MCTS] Start", file=sys.stderr)
                 start = time()
                 # Do Monte Carlo simulation in the alloted time
                 while time() - start < time_limit:
-                    print("[MCTS] Selection", file=sys.stderr)
+                    #print("[MCTS] Selection", file=sys.stderr)
                     selected_node = MCTS.mcts_select(self.root_node)
                     
-                    #TODO: handle the case when I selected the last step in the game (there's no more to expand)
-                    print("[MCTS] Expansion", file=sys.stderr)
+                    #print("[MCTS] Expansion", file=sys.stderr)
                     rollout_node = MCTS.mcts_expand(selected_node)
                     
-                    print("[MCTS] Simulation", file=sys.stderr)                                            
+                    #print("[MCTS] Simulation", file=sys.stderr)                                            
                     rollout_result = MCTS.mcts_simulate(rollout_node)
                     
-                    print("[MCTS] Backpropagation", file=sys.stderr)
+                    #print("[MCTS] Backpropagation", file=sys.stderr)
                     MCTS.mcts_backpropagate(rollout_node, rollout_result)
                 
-                print("[MCTS] End. Sending best move", file=sys.stderr)
+                #print("[MCTS] End. Sending best move", file=sys.stderr)
 
                 # When time is up, choose the move with the best score
                 children_scores = [child['score']/child['visits'] for child in self.root_node['children'] if child['visits'] > 0]
@@ -334,8 +333,6 @@ class PlayerTicTacToeMCTS(Player):
                 return (score/visits) + 1.41 * sqrt(log(parent_visits)/visits)
             
             def mcts_expand(node):
-            #TODO: handle the case where it's a terminal node and I can't expand it
-
                 if node['state'] is None:
                 # This is a non-expanded node, create its state and return it
                     node['state'] = MCTS.game_next_state(
@@ -344,7 +341,9 @@ class PlayerTicTacToeMCTS(Player):
                         node['move'])
                     
                     return node
-                    
+                elif node['state']['active'] is False:
+                # This is a terminal state, just return the node
+                    return node
                 else:
                 # This is an already expanded node
                 # 1. Create its children, but do not expand them
@@ -500,5 +499,5 @@ class PlayerTicTacToeMCTS(Player):
             
             # (4) Update state with my action
             state = MCTS.game_next_state(state,state['player'],best_move)
-        
+                    
             print('{} {}'.format(best_move[0],best_move[1]))

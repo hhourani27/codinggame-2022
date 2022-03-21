@@ -137,8 +137,7 @@ class Simulator:
                 break
             
             if debug:
-                print('Player {}\' turn'.format(player_id))
-                print('\tSending message to player : {}'.format(msg_array))
+                print(f'[Simulator] Sending message to player {player_id} : {msg_array}')
             messages.append((-1, player_id, msg_array))
             for msg in msg_array:
                 in_q[player_id].put(msg)
@@ -147,7 +146,7 @@ class Simulator:
             out_q[player_id].task_done()
             
             if debug:
-                print('\tReceived message from player : {}'.format(msg))
+                print(f'[Simulator] Received message from player {player_id} : {msg}')
             messages.append((player_id,-1,[msg]))
             
             game.move(msg)

@@ -3,6 +3,9 @@ import sys
 import traceback
 import builtins as __builtin__
 
+class PlayerKillException(Exception):
+    pass
+
 class Player:
     
     def __init__(self,id,inq,outq,attrs=None):
@@ -16,9 +19,9 @@ class Player:
         msg = self.inq.get()
         self.inq.task_done()
         
-        # Detect a kill signal
+        # The simulator can send a kill signal to stop the player
         if msg is None:
-            raise Exception('Stop player thread')
+            raise PlayerKillException()
         
         return msg
     
@@ -31,7 +34,11 @@ class Player:
     def run(self):
         try:
             self.custom_code(self.input, self.print)
-        except Exception as e:
+        except PlayerKillException:
+            # A kill signal sent by the Simulator : stop the player
+            pass
+        except :
+            # Another error raised by the player : log it
             __builtin__.print(traceback.format_exc())
     
     # Abstract method
