@@ -8,6 +8,7 @@ class Simulator:
     def run(Game, Players, nb_games=1, players_attribs=None,
             record_messages=False, record_message_dir=None,
             record_game=False, record_game_dir=None,
+            record_players=False, record_player_dir=None,
             debug=False, check_valid_moves = False) :
         '''
         Parameters
@@ -43,11 +44,12 @@ class Simulator:
         
         game_records = []
         messages_records = []
-        game_results = [[0,0,0] for i in range(len(Players))]
+        players_records = []
+        game_results = [[0,0,0] for p in Players ]
         
         for n in range(1,nb_games+1):
             print('Start game {}'.format(n))
-            game, messages = Simulator.run_game(Game, Players, players_attribs, debug, check_valid_moves)            
+            game, players, messages = Simulator.run_game(Game, Players, players_attribs, debug, check_valid_moves)            
             
             # Update winner results
             winners = game.get_winners()
@@ -64,7 +66,7 @@ class Simulator:
             if record_game:
                 game_records.append(game.get_record())
                 
-                if n % 100 == 0:
+                if n % 100 == 0 or n == nb_games:
                     file_name = 'game_record_{}.json'.format(int(time.time()))
                     with open(join(record_game_dir,file_name), 'w') as out_file:
                         json.dump(game_records, out_file)
@@ -73,12 +75,21 @@ class Simulator:
             if record_messages:
                 messages_records.append(messages)
                 
-                if n % 100 == 0:
+                if n % 100 == 0 or n == nb_games:
                     file_name = 'game_messages_{}.json'.format(int(time.time()))
                     with open(join(record_message_dir,file_name), 'w') as out_file:
                         json.dump(messages_records, out_file, indent=1)
                     messages_records = []
                     
+            if record_players:
+                players_records.append([p.get_store() for p in players])
+                
+                if n % 100 == 0 or n == nb_games:
+                    file_name = 'player_records_{}.json'.format(int(time.time()))
+                    with open(join(record_player_dir,file_name), 'w') as out_file:
+                        json.dump(players_records, out_file, indent=1)
+                    players_records = []
+
         return game_results
     
     def run_game(Game, Players, players_attribs=None, debug=False, check_valid_moves=False):
@@ -155,4 +166,4 @@ class Simulator:
         while any([t.is_alive() for t in player_threads]):
             pass
         
-        return (game,messages)
+        return (game,players,messages)

@@ -2,7 +2,6 @@ import sys
 from math import inf, log, sqrt
 from time import time
 import random as rd
-import traceback
 
 sys.path.insert(1, 'C:/Users/hhour/Desktop/codinggame/common')
 from player import Player
@@ -348,11 +347,7 @@ class PlayerTicTacToeMCTS(Player):
                 # This is an already expanded node
                 # 1. Create its children, but do not expand them
                     state = node['state']
-                    valid_moves = get_valid_moves_9x9(
-                        state['p_cells'][0] | state['p_cells'][1],
-                        state['locked_squares'],
-                        state['last_move']
-                        )
+                    valid_moves = MCTS.game_get_valid_moves(state)
                 
                     node['children'] = [ {
                         'move' : move,
@@ -365,8 +360,8 @@ class PlayerTicTacToeMCTS(Player):
                         }
                         for move in valid_moves
                         ]
-               # 2. Choose the first children, expand it and return it     
-                    child = node['children'][0]
+               # 2. Choose a random children, expand it and return it     
+                    child = rd.choice(node['children'])
                     child['state'] = MCTS.game_next_state(
                         node['state'], 
                         child['player'],
@@ -378,11 +373,7 @@ class PlayerTicTacToeMCTS(Player):
                 state = node['state']
                 while state['active'] is True :
                     # Choose a random move
-                    valid_moves = get_valid_moves_9x9(
-                        state['p_cells'][0] | state['p_cells'][1],
-                        state['locked_squares'],
-                        state['last_move']
-                        )
+                    valid_moves = MCTS.game_get_valid_moves(state)
                     move = rd.choice(valid_moves)
 
                     state = MCTS.game_next_state(state, state['player'], move)
@@ -464,6 +455,40 @@ class PlayerTicTacToeMCTS(Player):
                     'winners' : winners_new,
                     }
 
+            def game_get_valid_moves(state):
+                return get_valid_moves_9x9(
+                    state['p_cells'][0] | state['p_cells'][1],
+                    state['locked_squares'],
+                    state['last_move']
+                    )
+            
+            def mgr_print_tree(self):
+                '''                
+                Serialize tree to JSON without the parent key (to avoid circular reference)
+            
+                '''
+                import graphviz
+                
+                dot = graphviz.Digraph('monte-carlo-search-tree')
+                
+                queue = [self.root_node]
+                while queue:
+                    node = queue.pop(0)
+                    dot.node(name=str(id(node)), label=f'{node["score"]}/{node["visits"]}')
+                    
+                    if node['parent'] is not None:
+                        dot.edge(
+                            tail_name=str(id(node['parent'])), 
+                            head_name=str(id(node)),
+                            label=str(node['move'])
+                            )
+                    
+                    for child in node['children']:
+                        if child['state'] is not None:
+                            queue.append(child)
+                
+                return dot.source
+
 #-------------------------------------------------------------------------------
 
         # Game state
@@ -496,6 +521,9 @@ class PlayerTicTacToeMCTS(Player):
             # (3) Determine the best next action
             mcts = MCTS(state, valid_moves, state['player'])
             best_move = mcts.best_move(0.1)
+            
+            mcts_tree_dot = mcts.mgr_print_tree()
+            self.put_store(mcts_tree_dot)            
             
             # (4) Update state with my action
             state = MCTS.game_next_state(state,state['player'],best_move)

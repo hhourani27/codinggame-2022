@@ -14,6 +14,7 @@ class Player:
         self.outq = outq
         
         self.attrs = attrs
+        self.store = []
         
     def input(self):
         msg = self.inq.get()
@@ -44,4 +45,10 @@ class Player:
     # Abstract method
     def custom_code(self, input, print):
         raise NotImplementedError("error message")
+    
+    def put_store(self, data):
+        self.store.append(data)
+        
+    def get_store(self):
+        return self.store
 
