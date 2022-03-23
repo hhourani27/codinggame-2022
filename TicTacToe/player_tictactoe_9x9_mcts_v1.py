@@ -462,7 +462,7 @@ class PlayerTicTacToeMCTS(Player):
                     state['last_move']
                     )
             
-            def mgr_print_tree(self):
+            def stats_print_tree(self):
                 '''                
                 Serialize tree to JSON without the parent key (to avoid circular reference)
             
@@ -488,6 +488,42 @@ class PlayerTicTacToeMCTS(Player):
                             queue.append(child)
                 
                 return dot.source
+            
+            def stats_simulation_count(self):
+                '''
+                Return the number of simulations that were played out
+                '''
+                return self.root_node['visits']
+            
+            def stats_expanded_nodes_count(self):
+                '''
+                Return the number of expanded nodes
+                '''
+                expanded_node_count = 0
+                queue = [self.root_node]
+                while queue:
+                    node = queue.pop(0)
+                    expanded_node_count += 1
+                    
+                    for child in node['children']:
+                        if child['state'] is not None:
+                            queue.append(child)
+                            
+                return expanded_node_count
+            
+            def stats_tree_depth(self):
+                '''
+                Return the max depth of the tree
+                '''
+                def tree_depth(node, depth):
+                    if not node['children'] or all([child['state'] is None for child in node['children']]):
+                        return depth+1
+                    
+                    return max([tree_depth(child,depth+1) for child in node['children'] if child['state'] is not None])
+                
+                return tree_depth(self.root_node,1)
+                    
+
 
 #-------------------------------------------------------------------------------
 
@@ -522,8 +558,7 @@ class PlayerTicTacToeMCTS(Player):
             mcts = MCTS(state, valid_moves, state['player'])
             best_move = mcts.best_move(0.1)
             
-            mcts_tree_dot = mcts.mgr_print_tree()
-            self.put_store(mcts_tree_dot)            
+            self.put_store([mcts.stats_expanded_nodes_count(), mcts.stats_simulation_count(), mcts.stats_tree_depth()])
             
             # (4) Update state with my action
             state = MCTS.game_next_state(state,state['player'],best_move)

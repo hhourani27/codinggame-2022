@@ -1,0 +1,17 @@
+
+PlayerMCTSv1 vs PlayerTicTacToeRandom
+	Won  : 100
+	Loss : 0
+	Tie	 : 0
+
+PlayerMCTSv1 : Silver league 4/612
+	Mean Tree node count : 161
+	Mean Simulation count : 165
+	Mean Tree depth : 6.0
+
+--------------------------------------------
+DRAFT
+PlayerMCTSv2	vs	PlayerMCTSv1
+	Won  : 49
+	Loss : 43
+	Tie	 : 8
