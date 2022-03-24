@@ -104,7 +104,7 @@ def is_won_5(p_board_bin):
         
     return False
 
-def is_won_5(p_board_bin):    
+def is_won_6(p_board_bin):    
     for conf in winning_configurations_set:
         if conf == conf & p_board_bin:
             return True
@@ -112,10 +112,33 @@ def is_won_5(p_board_bin):
     return False
 
 #%%
-N = 10000
-timeit.timeit('is_won_1(0b001001001)', number=N)
-timeit.timeit('is_won_2(0b001001001)', number=N)
-timeit.timeit('is_won_3(0b001001001)', number=N)
-timeit.timeit('is_won_4(0b001001001)', number=N)
-timeit.timeit('is_won_5(0b001001001)', number=N)
-timeit.timeit('is_won_6(0b001001001)', number=N)
+N = 1000000
+start = time()
+for i in range(N):
+    is_won_1(0b001001001)
+print(f'is_won_1 : {time()-start} ms')
+
+start = time()
+for i in range(N):
+    is_won_2(0b001001001)
+print(f'is_won_2 : {time()-start} ms')
+
+start = time()
+for i in range(N):
+    is_won_3(0b001001001)
+print(f'is_won_3 : {time()-start} ms')
+
+start = time()
+for i in range(N):
+    is_won_4(0b001001001)
+print(f'is_won_4 : {time()-start} ms')
+
+start = time()
+for i in range(N):
+    is_won_5(0b001001001)
+print(f'is_won_5 : {time()-start} ms')
+
+start = time()
+for i in range(N):
+    is_won_6(0b001001001)
+print(f'is_won_6 : {time()-start} ms')

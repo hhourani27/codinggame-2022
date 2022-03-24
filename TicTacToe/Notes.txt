@@ -10,8 +10,18 @@ PlayerMCTSv1 : Silver league 4/612
 	Mean Tree depth : 6.0
 
 --------------------------------------------
-DRAFT
-PlayerMCTSv2	vs	PlayerMCTSv1
+PlayerMCTSv1	vs	PlayerMCTSv1
 	Won  : 49
 	Loss : 43
 	Tie	 : 8
+	
+	
+PlayerMCTSv2	vs	PlayerMCTSv1
+	Won  : 54
+	Loss : 40
+	Tie	 : 6
+
+PlayerMCTSv2 : Silver league 1/612
+	Mean Tree node count : 239
+	Mean Simulation count : 244
+	Mean Tree depth : 6

@@ -558,8 +558,6 @@ class PlayerTicTacToeMCTS(Player):
             mcts = MCTS(state, valid_moves, state['player'])
             best_move = mcts.best_move(0.1)
             
-            self.put_store([mcts.stats_expanded_nodes_count(), mcts.stats_simulation_count(), mcts.stats_tree_depth()])
-            
             # (4) Update state with my action
             state = MCTS.game_next_state(state,state['player'],best_move)
                     

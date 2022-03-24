@@ -6,6 +6,11 @@ import random as rd
 sys.path.insert(1, 'C:/Users/hhour/Desktop/codinggame/common')
 from player import Player
 
+################################
+# GLOBAL VARIABLES TO MANUALLY COPY
+ix_3x3 = 0
+################################
+
 class PlayerTicTacToeMCTS(Player):
     
     def __init__(self,id,inq,outq):
@@ -13,6 +18,20 @@ class PlayerTicTacToeMCTS(Player):
 
 
     def custom_code(self, input, print):
+        winning_configurations = [
+            0b111000000,
+            0b000111000,
+            0b000000111,
+            0b100100100,
+            0b010010010,
+            0b001001001,
+            0b100010001,
+            0b001010100
+            ]
+        
+        all_squares = ((0,0),(0,1),(0,2),(1,0),(1,1),(1,2),(2,0),(2,1),(2,2))
+
+        
         def place_move_on_board(board81_bin, move):
             '''
             Place the move on the board and return the updated board
@@ -85,18 +104,7 @@ class PlayerTicTacToeMCTS(Player):
             -------
             True is it is a winning configuration
 
-            '''
-            winning_configurations = [
-                0b111000000,
-                0b000111000,
-                0b000000111,
-                0b100100100,
-                0b010010010,
-                0b001001001,
-                0b100010001,
-                0b001010100
-                ]
-            
+            '''            
             for conf in winning_configurations:
                 if conf == conf & p_board_bin:
                     return True
@@ -140,7 +148,6 @@ class PlayerTicTacToeMCTS(Player):
             a list of moves : tuple of (row, col)
     
             '''
-            all_squares = ((0,0),(0,1),(0,2),(1,0),(1,1),(1,2),(2,0),(2,1),(2,2))
             
             # (1) Determine the valid squares for the next move
             valid_squares = ()
@@ -167,6 +174,49 @@ class PlayerTicTacToeMCTS(Player):
                 valid_moves.extend(valid_moves_9x9)
             
             return valid_moves
+        
+        def get_first_valid_move_9x9(cell81_bin, locked_square9_bin, last_move):
+            '''
+            From a binary representation of the board, determine a list of empty cells
+            
+            Parameters
+            ----------
+            cell81_bin : bin
+                A 81-bit representation of the board. where 0=empty cell & 1=filled cell
+            square9_bin : bin
+                A 9-bit representation of the squares where 1=locked (won or filled) and 0=available square
+            last_move : (int,int)
+                the last played move, which will determine the legal square
+            
+    
+            Returns
+            -------
+            a single move : tuple of (row, col)
+    
+            '''
+            
+            # (1) Choose a valid square for the next move
+            if last_move == (-1,-1) :
+                valid_square = rd.choice(all_squares)
+            else:
+                square_row, square_col = cell9x9_to_cell3x3(*last_move)
+                square_is_locked = ( locked_square9_bin >> (2-square_row)*3+(2-square_col) ) & 0b1
+                
+                # If square is locked, then only available squares are valid
+                if square_is_locked == 1:
+                    valid_square = rd.choice(
+                        [square for square in all_squares if ( locked_square9_bin >> (2-square[0])*3+(2-square[1]) ) & 0b1 == 0]
+                        )
+                else:
+                # else if square is available, then this is the only square
+                    valid_square = (square_row, square_col)
+                
+            
+            # (2) Determine the valid moves in the valid squares
+            square_bin = slice_square(cell81_bin, valid_square)
+            valid_move_3x3 = rd.choice(get_valid_moves_3x3(square_bin))
+            valid_move_9x9 = cell3x3_to_cell9x9(valid_move_3x3, valid_square)            
+            return valid_move_9x9
     
         def get_valid_moves_3x3(board9_bin):
             '''
@@ -190,6 +240,31 @@ class PlayerTicTacToeMCTS(Player):
                     valid_moves.append((i//3, i%3))
             
             return valid_moves
+        
+        
+        def get_first_valid_move_3x3(board9_bin):
+            '''
+            From a binary representation of the board, determine a list of empty cells
+            
+            Parameters
+            ----------
+            board_bin : bin
+                A 9-bit representation of the board. where 0=empty cell & 1=filled cell
+    
+            Returns
+            -------
+            a move : tuple of (row, col)
+    
+            '''
+            global ix_3x3
+            bin_str = format(board9_bin,'09b')
+                
+            for i in range(9):
+                ix_3x3 += 1
+                bix = ix_3x3 % 9
+                if bin_str[bix] == '0':
+                    return (bix//3, bix%3)
+
     
         def cell9x9_to_cell3x3(cell_row, cell_col):
             '''
@@ -373,8 +448,7 @@ class PlayerTicTacToeMCTS(Player):
                 state = node['state']
                 while state['active'] is True :
                     # Choose a random move
-                    valid_moves = MCTS.game_get_valid_moves(state)
-                    move = rd.choice(valid_moves)
+                    move = MCTS.game_get_first_valid_move(state)
 
                     state = MCTS.game_next_state(state, state['player'], move)
                 
@@ -457,6 +531,18 @@ class PlayerTicTacToeMCTS(Player):
 
             def game_get_valid_moves(state):
                 return get_valid_moves_9x9(
+                    state['p_cells'][0] | state['p_cells'][1],
+                    state['locked_squares'],
+                    state['last_move']
+                    )
+            
+            def game_get_first_valid_move(state):
+                '''
+                For simulation, we just need one move. This function can be used, if getting the first move is
+                faster than picking from all valid moves
+
+                '''
+                return get_first_valid_move_9x9(
                     state['p_cells'][0] | state['p_cells'][1],
                     state['locked_squares'],
                     state['last_move']
@@ -562,5 +648,6 @@ class PlayerTicTacToeMCTS(Player):
             
             # (4) Update state with my action
             state = MCTS.game_next_state(state,state['player'],best_move)
-                    
+            
+            # To debug: print("Debug messages...", file=sys.stderr, flush=True)
             print('{} {}'.format(best_move[0],best_move[1]))

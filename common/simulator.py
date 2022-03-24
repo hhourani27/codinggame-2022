@@ -128,7 +128,7 @@ class Simulator:
             players = [Players[i](i,in_q[i],out_q[i]) for i in pids]
         else:
             players = [Players[i](i,in_q[i],out_q[i],players_attribs[i]) for i in pids]
-        player_threads = [threading.Thread(target=p.run) for p in players]    
+        player_threads = [threading.Thread(name=f'{p.__class__.__name__} [{i}]', target=p.run) for i,p in enumerate(players)]    
         
         # Start player threads
         for pt in player_threads:
