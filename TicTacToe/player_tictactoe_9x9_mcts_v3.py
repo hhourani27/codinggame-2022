@@ -30,7 +30,6 @@ class PlayerTicTacToeMCTS(Player):
             ]
         
         all_squares = ((0,0),(0,1),(0,2),(1,0),(1,1),(1,2),(2,0),(2,1),(2,2))
-
         
         def place_move_on_board(board81_bin, move):
             '''
@@ -624,6 +623,7 @@ class PlayerTicTacToeMCTS(Player):
             'winners' : None,
             }
         
+        
         while True:
             # (1) Read inputs
             opp_row, opp_col = [int(i) for i in input().split()]
@@ -642,7 +642,9 @@ class PlayerTicTacToeMCTS(Player):
                 
             # (3) Determine the best next action
             mcts = MCTS(state, valid_moves, state['player'])
-            best_move = mcts.best_move(0.1)
+            best_move = mcts.best_move(1.0)
+            
+            self.put_store([mcts.stats_expanded_nodes_count(), mcts.stats_simulation_count(), mcts.stats_tree_depth()])
             
             # (4) Update state with my action
             state = MCTS.game_next_state(state,state['player'],best_move)
