@@ -1,7 +1,7 @@
 from game_tic_tac_toe_9x9 import TicTacToe
 from player_tictactoe_random import PlayerTicTacToeRandom
-from player_tictactoe_9x9_mcts_v1 import PlayerTicTacToeMCTS as PlayerMCTSv1
 from player_tictactoe_9x9_mcts_v2 import PlayerTicTacToeMCTS as PlayerMCTSv2
+from player_tictactoe_9x9_mcts_v3 import PlayerTicTacToeMCTS as PlayerMCTSv3
 
 import sys
 sys.path.insert(1, 'C:/Users/hhour/Desktop/codinggame/common')
@@ -10,9 +10,9 @@ from simulator import Simulator
 
 #%%
 
-players = [PlayerMCTSv2,PlayerTicTacToeRandom]
+players = [PlayerMCTSv3,PlayerMCTSv2]
 
-runs = 100
+runs = 50
 results1 = Simulator.run(TicTacToe, players, nb_games=runs,
               record_game=False, record_game_dir='C:/Users/hhour/Desktop/codinggame/TicTacToe/game_records',
               record_messages=False, record_message_dir='C:/Users/hhour/Desktop/codinggame/TicTacToe/game_messages',
@@ -20,7 +20,7 @@ results1 = Simulator.run(TicTacToe, players, nb_games=runs,
               debug=False, check_valid_moves=False)
 
 
-players = [PlayerMCTSv1,PlayerMCTSv2]
+players = [PlayerMCTSv2,PlayerMCTSv3]
 results2 = Simulator.run(TicTacToe, players, nb_games=runs,
               record_game=False, record_game_dir='C:/Users/hhour/Desktop/codinggame/TicTacToe/game_records',
               record_messages=False, record_message_dir='C:/Users/hhour/Desktop/codinggame/TicTacToe/game_messages',

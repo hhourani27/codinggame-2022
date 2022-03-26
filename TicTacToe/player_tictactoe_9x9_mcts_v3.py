@@ -8,7 +8,6 @@ from player import Player
 
 ################################
 # GLOBAL VARIABLES TO MANUALLY COPY
-ix_3x3 = 0
 ################################
 
 class PlayerTicTacToeMCTS(Player):
@@ -18,7 +17,7 @@ class PlayerTicTacToeMCTS(Player):
 
 
     def custom_code(self, input, print):
-        winning_configurations = [
+        winning_configurations = set([
             0b111000000,
             0b000111000,
             0b000000111,
@@ -27,9 +26,11 @@ class PlayerTicTacToeMCTS(Player):
             0b001001001,
             0b100010001,
             0b001010100
-            ]
+            ])
         
         all_squares = ((0,0),(0,1),(0,2),(1,0),(1,1),(1,2),(2,0),(2,1),(2,2))
+        
+
         
         def place_move_on_board(board81_bin, move):
             '''
@@ -51,7 +52,8 @@ class PlayerTicTacToeMCTS(Player):
             move_bin = 0b100000000000000000000000000000000000000000000000000000000000000000000000000000000 >> (r*9+c)
             
             return board81_bin | move_bin
-
+        
+        # REPLACED BY LOOKUP
         def square_of_cell(cell_row, cell_col):
             '''
             Get the position of the square (0-2, 0-2) that the cell (0-8, 0-8) is occupying 
@@ -66,7 +68,10 @@ class PlayerTicTacToeMCTS(Player):
     
             '''
             return (cell_row // 3, cell_col // 3)
-
+        
+        # ---- lookup_square_of_cell
+        lookup_square_of_cell = [[square_of_cell(i,j) for j in range(9)] for i in range(9)]
+        
         def slice_square(board81_bin, square):
             '''
             Slice the square from the 81-bit representation of the entire board
@@ -90,6 +95,7 @@ class PlayerTicTacToeMCTS(Player):
             
             return int(square_str,2)
 
+        # REPLACED BY LOOKUP
         def is_won(p_board_bin):
             '''
             Check if this player's board is a winning configuration
@@ -109,7 +115,11 @@ class PlayerTicTacToeMCTS(Player):
                     return True
                 
             return False
+        
+        # ---- lookup_is_won_3x3
+        lookup_is_won_3x3 = [is_won(n) for n in range(2**9)]
 
+        # REPLACED BY LOOKUP
         def set_bit(bin_3x3, row, col):
             '''
             Set the bit of a 3x3 binary representation to 1 at the (row,col) position
@@ -120,13 +130,81 @@ class PlayerTicTacToeMCTS(Player):
             row,col : (0-2)
             '''
             return ( 0b100000000 >> (row*3+col) ) | bin_3x3
+        
+        # ---- lookup_set_bit
+        lookup_set_bit = [[[set_bit(b,i,j) for j in range(9) ] for i in range(9)] for b in range(2**9)]
 
+        # REPLACED BY LOOKUP
         def count_1s(binary):
             '''
             Return the number of set bits in a binary numner
     
             '''
             return bin(binary).count('1')
+        
+        # REPLACED BY LOOKUP
+        def get_valid_moves_3x3(board9_bin):
+            '''
+            From a binary representation of the board, determine a list of empty cells
+            
+            Parameters
+            ----------
+            board_bin : bin
+                A 9-bit representation of the board. where 0=empty cell & 1=filled cell
+    
+            Returns
+            -------
+            a list of moves : tuple of (row, col)
+    
+            '''
+            bin_str = format(board9_bin,'09b')
+            valid_moves = []
+            
+            for i,c in enumerate(bin_str):
+                if c == '0':
+                    valid_moves.append((i//3, i%3))
+            
+            return valid_moves
+        
+        # ---- lookup_valid_moves_3x3
+        lookup_valid_moves_3x3 = [get_valid_moves_3x3(n) for n in range(2**9)]
+        
+        def cell9x9_to_cell3x3(cell_row, cell_col):
+            '''
+            Get the position of a cell (0-8, 0-8) in a 3x3 square (0-2, 0-2)
+    
+            Parameters
+            ----------
+            cell_row, cell_col: int [0-8]
+    
+            Returns
+            -------
+            The correspond position of the cell in the 3x3 square (0-2,0-2)
+    
+            '''
+            return (cell_row % 3, cell_col % 3)
+        
+        # ---- lookup_cell9x9_to_cell3x3
+        lookup_cell9x9_to_cell3x3 = [[cell9x9_to_cell3x3(i,j) for j in range(9)] for i in range(9)]
+    
+        def cell3x3_to_cell9x9(cell, square):
+            '''
+            Convert a cell position in a 3x3 square to the position in the 9x9 board
+    
+            Parameters
+            ----------
+            cell_row, cell_col : (0-2, 0-2)
+            square_row : (0-2, 0-2)
+    
+            Returns
+            -------
+            (0-8, 0-8)
+    
+            '''
+            return (
+                cell[0] + square[0]*3,
+                cell[1] + square[1]*3
+                )
 
         def get_valid_moves_9x9(cell81_bin, locked_square9_bin, last_move):
             '''
@@ -153,7 +231,7 @@ class PlayerTicTacToeMCTS(Player):
             if last_move == (-1,-1) :
                 valid_squares = all_squares
             else:
-                square_row, square_col = cell9x9_to_cell3x3(*last_move)
+                square_row, square_col = lookup_cell9x9_to_cell3x3[last_move[0]][last_move[1]]
                 square_is_locked = ( locked_square9_bin >> (2-square_row)*3+(2-square_col) ) & 0b1
                 
                 # If square is locked, then only available squares are valid
@@ -168,7 +246,7 @@ class PlayerTicTacToeMCTS(Player):
             valid_moves = []
             for square in valid_squares:
                 square_bin = slice_square(cell81_bin, square)
-                valid_moves_3x3 = get_valid_moves_3x3(square_bin)
+                valid_moves_3x3 = lookup_valid_moves_3x3[square_bin]
                 valid_moves_9x9 = [cell3x3_to_cell9x9(cell, square) for cell in valid_moves_3x3]
                 valid_moves.extend(valid_moves_9x9)
             
@@ -198,7 +276,7 @@ class PlayerTicTacToeMCTS(Player):
             if last_move == (-1,-1) :
                 valid_square = rd.choice(all_squares)
             else:
-                square_row, square_col = cell9x9_to_cell3x3(*last_move)
+                square_row, square_col = lookup_cell9x9_to_cell3x3[last_move[0]][last_move[1]]
                 square_is_locked = ( locked_square9_bin >> (2-square_row)*3+(2-square_col) ) & 0b1
                 
                 # If square is locked, then only available squares are valid
@@ -213,91 +291,12 @@ class PlayerTicTacToeMCTS(Player):
             
             # (2) Determine the valid moves in the valid squares
             square_bin = slice_square(cell81_bin, valid_square)
-            valid_move_3x3 = rd.choice(get_valid_moves_3x3(square_bin))
+            valid_move_3x3 = rd.choice(lookup_valid_moves_3x3[square_bin])
             valid_move_9x9 = cell3x3_to_cell9x9(valid_move_3x3, valid_square)            
             return valid_move_9x9
     
-        def get_valid_moves_3x3(board9_bin):
-            '''
-            From a binary representation of the board, determine a list of empty cells
-            
-            Parameters
-            ----------
-            board_bin : bin
-                A 9-bit representation of the board. where 0=empty cell & 1=filled cell
     
-            Returns
-            -------
-            a list of moves : tuple of (row, col)
-    
-            '''
-            bin_str = format(board9_bin,'09b')
-            valid_moves = []
-            
-            for i,c in enumerate(bin_str):
-                if c == '0':
-                    valid_moves.append((i//3, i%3))
-            
-            return valid_moves
-        
-        
-        def get_first_valid_move_3x3(board9_bin):
-            '''
-            From a binary representation of the board, determine a list of empty cells
-            
-            Parameters
-            ----------
-            board_bin : bin
-                A 9-bit representation of the board. where 0=empty cell & 1=filled cell
-    
-            Returns
-            -------
-            a move : tuple of (row, col)
-    
-            '''
-            global ix_3x3
-            bin_str = format(board9_bin,'09b')
-                
-            for i in range(9):
-                ix_3x3 += 1
-                bix = ix_3x3 % 9
-                if bin_str[bix] == '0':
-                    return (bix//3, bix%3)
 
-    
-        def cell9x9_to_cell3x3(cell_row, cell_col):
-            '''
-            Get the position of a cell (0-8, 0-8) in a 3x3 square (0-2, 0-2)
-    
-            Parameters
-            ----------
-            cell_row, cell_col: int [0-8]
-    
-            Returns
-            -------
-            The correspond position of the cell in the 3x3 square (0-2,0-2)
-    
-            '''
-            return (cell_row % 3, cell_col % 3)
-    
-        def cell3x3_to_cell9x9(cell, square):
-            '''
-            Convert a cell position in a 3x3 square to the position in the 9x9 board
-    
-            Parameters
-            ----------
-            cell_row, cell_col : (0-2, 0-2)
-            square_row : (0-2, 0-2)
-    
-            Returns
-            -------
-            (0-8, 0-8)
-    
-            '''
-            return (
-                cell[0] + square[0]*3,
-                cell[1] + square[1]*3
-                )
 
 
         
@@ -490,26 +489,26 @@ class PlayerTicTacToeMCTS(Player):
                 
                 #   2. Check if the player won the square or if that square is filled
                 #       Get the player's square
-                square = square_of_cell(*move)
+                square = lookup_square_of_cell[move[0]][move[1]]
                 p_square_bin = slice_square(p_cells_new[player], square)
                 #       Check if the square is won
-                if is_won(p_square_bin):
+                if lookup_is_won_3x3[p_square_bin]:
                 #           Update the player's square status
-                    p_squares_new[player] = set_bit(p_squares_new[player], *square)                
+                    p_squares_new[player] = lookup_set_bit[p_squares_new[player]][square[0]][square[1]]                
                 #           Update the locked square status
-                    locked_squares_new = set_bit(locked_squares_new, *square)
+                    locked_squares_new = lookup_set_bit[locked_squares_new][square[0]][square[1]]  
                 #       If the square was not won, check if it is filled
                 elif slice_square(p_cells_new[0] | p_cells_new[1], square) == 0b111111111:
                 #           Update the locked square status
-                    locked_squares_new = set_bit(locked_squares_new, *square)
+                    locked_squares_new = lookup_set_bit[locked_squares_new][square[0]][square[1]]
 
                 # 3. Check if this is a winning move or a tie
-                if is_won(p_squares_new[player]):
+                if lookup_is_won_3x3[p_squares_new[player]]:
                     active_new = False
                     winners_new = [player]
                 elif locked_squares_new == 0b111111111:
                     active_new = False
-                    won_square_count = [count_1s(sq) for sq in p_squares_new]
+                    won_square_count = [lookup_count_1s[sq] for sq in p_squares_new]
                     if won_square_count[0] > won_square_count[1]:
                         winners_new = [0]
                     elif won_square_count[0] < won_square_count[1]:
@@ -611,6 +610,9 @@ class PlayerTicTacToeMCTS(Player):
 
 
 #-------------------------------------------------------------------------------
+        # ---- lookup_count_1s
+        lookup_count_1s = [bin(n).count('1') for n in range(2**9)]
+        
 
         # Game state
         state = {
@@ -642,7 +644,7 @@ class PlayerTicTacToeMCTS(Player):
                 
             # (3) Determine the best next action
             mcts = MCTS(state, valid_moves, state['player'])
-            best_move = mcts.best_move(1.0)
+            best_move = mcts.best_move(0.1)
             
             self.put_store([mcts.stats_expanded_nodes_count(), mcts.stats_simulation_count(), mcts.stats_tree_depth()])
             
